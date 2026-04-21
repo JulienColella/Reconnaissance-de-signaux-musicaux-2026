@@ -119,7 +119,7 @@ class Encoding:
         plt.xlabel('Time [s]')
         plt.ylabel('Frequency [kHz]')
         if(display_anchors):
-            plt.scatter(self.anchors[:, 0], self.anchors[:, 1]/1e3)
+            plt.scatter(self.f[self.anchors[:, 0]], self.t[self.anchors[:, 1]/1e3], color='red', marker='x')
         plt.show()
 
 
