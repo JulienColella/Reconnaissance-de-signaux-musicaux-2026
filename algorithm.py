@@ -118,7 +118,7 @@ class Encoding:
         #self.f, self.t, self.S = spectrogram(s, fs=fs, nperseg=self.nperseg, noverlap=self.noverlap)
         self.f, self.t, self.S = spectrogram(s, fs=fs, nperseg=self.nperseg, noverlap=self.noverlap, scaling='spectrum')
 
-        self.anchors = peak_local_max(self.S, self.min_distance, exclude_border=False)
+        self.anchors = peak_local_max(self.S, min_distance = self.min_distance, exclude_border=False)
 
 
         self.hashes = []
