@@ -14,6 +14,7 @@ from skimage.feature import peak_local_max
 # ----------------------------------------------------------------------------
 
 
+# +
 class Encoding:
 
     """
@@ -27,7 +28,7 @@ class Encoding:
 
     """
 
-    def __init__(self):
+    def __init__(self, nperseg=128, noverlap=32, min_distance=50, time_window=1, freq_window=1500):
 
         """
         Class constructor
@@ -47,6 +48,31 @@ class Encoding:
         """
 
         # Insert code here
+        self.nperseg = nperseg
+        self.noverlap = noverlap
+        self.min_distance = min_distance
+        self.time_window = time_window
+        self.freq_window = freq_window
+        self.fs = None
+        self.s = None
+        self.f = None
+        self.t = None
+        self.S = None
+        self.anchors = None
+        self.hashes = None
+
+
+    def spectrogram(self, fs, s):
+        self.fs = fs
+        self.s = s
+
+        if len(s.shape) > 1 and s.shape[1] > 1:
+            s = np.mean(s, axis=1) 
+        
+        #self.f, self.t, self.S = spectrogram(s, fs=fs, nperseg=self.nperseg, noverlap=self.noverlap)
+        self.f, self.t, self.S = spectrogram(s, fs=fs, nperseg=self.nperseg, noverlap=self.noverlap, scaling='spectrum')
+        
+
     def process(self, fs, s):
 
         """
@@ -85,26 +111,27 @@ class Encoding:
         self.s = s
 
         # Insert code here
-        self.t, self.f, self.S = spectrogram(self.s, fs=self.fs, nperseg=128, noverlap=32)
-        self.anchors = peak_local_max(self.S, min_distance=50, exclude_border=False)
-        dt=1
-        df=1500
+
+        if len(s.shape) > 1 and s.shape[1] > 1:
+            s = np.mean(s, axis=1) 
+
+        #self.f, self.t, self.S = spectrogram(s, fs=fs, nperseg=self.nperseg, noverlap=self.noverlap)
+        self.f, self.t, self.S = spectrogram(s, fs=fs, nperseg=self.nperseg, noverlap=self.noverlap, scaling='spectrum')
+
+        self.anchors = peak_local_max(self.S, self.min_distance, exclude_border=False)
+
+
         self.hashes = []
-        for anchor in self.anchors:
-            t_anchor = self.t[anchor[1]]
-            f_anchor = self.f[anchor[0]]
-            for target in self.anchors:
-                t_target = self.t[target[1]]
-                f_target = self.f[target[0]]
-                if (t_target > t_anchor) and (t_target - t_anchor < dt) and (abs(f_target - f_anchor) < df):
-                    hashcode = np.array([t_target - t_anchor, f_anchor, f_target])
-                    self.hashes.append({'t': t_anchor, 'hash': hashcode})
-        
+        for (f_a, t_a) in (self.anchors):
+            for (f_t, t_t) in (self.anchors):
+                t = self.t[t_t] - self.t[t_a]
+                f = abs(self.f[f_t] - self.f[f_a])
+                if 0 < t <= self.time_window and f < self.freq_window:
+                    self.hashes.append({"t": self.t[t_a], "hash": np.array([t, self.f[f_a], self.f[f_t]])})
         
 
+    def display_spectrogram(self, display_anchors=False):
 
-    def display_spectrogram(self, display_anchors=True):
-        
         """
         Display the spectrogram of the audio signal
 
@@ -114,14 +141,26 @@ class Encoding:
            when set equal to True, the anchors are displayed on the
            spectrogram
         """
-        
-        plt.pcolormesh(self.t, self.f/1e3, self.S, shading='gouraud' )
+
+        plt.pcolormesh(self.t, self.f/1e3, self.S, shading='gouraud')
         plt.xlabel('Time [s]')
         plt.ylabel('Frequency [kHz]')
-        if(display_anchors):
-            plt.scatter(self.f[self.anchors[:, 0]], self.t[self.anchors[:, 1]/1e3], color='red', marker='x')
+        if display_anchors and self.anchors is not None:
+            plt.scatter([self.t[i] for i in self.anchors[:, 1]], [self.f[i]/1e3 for i in self.anchors[:, 0]])
         plt.show()
 
+
+
+# -
+
+if __name__ == '__main__':
+    fs, s = read('samples/2.wav')
+    encoder = Encoding()
+    encoder.process(fs, s)
+    #print(encoder.anchors)
+    #print(encoder.t)
+    #print([item['t'] for item in encoder.hashes])
+    encoder.display_spectrogram(True)
 
 
 # ----------------------------------------------------------------------------
@@ -158,7 +197,7 @@ class Matching:
        time offsets between the matches
     """
 
-    def __init__(self, hashes1, hashes2):
+    def __init__(self, hashes1, hashes2, critere = 2):
 
         """
         Compare the hashes from two audio files to determine if these
@@ -206,6 +245,19 @@ class Matching:
         #    hashcodes that match
         # 2. implementing a criterion to decide whether or not both extracts
         #    match
+
+        self.match = False
+        self.offsets = []
+        self.hist = []
+        self.bin_egdes = []
+        if self.matching.ndim > 1 and len(self.matching) > 1:
+            self.offsets = self.matching[:,0] - self.matching[:,1]
+
+            self.hist, self.bin_edges = np.histogram(self.offsets, bins=100)
+        
+            self.hist.sort()
+            if self.hist[-1] > (critere * self.hist[-2]):
+                self.match = True
        
              
     def display_scatterplot(self):
@@ -229,4 +281,63 @@ class Matching:
         plt.xlabel('Offset (s)')
         plt.show()
 
+if __name__ == '__main__':
+    with open('songs.pickle', 'rb') as handle:
+        database = pickle.load(handle)
 
+if __name__ == '__main__':
+    matching = Matching(database[1]['hashcodes'], database[1]['hashcodes'])
+    matching.display_scatterplot()
+    matching.display_histogram()
+    print(matching.match)
+
+    matching = Matching(database[1]['hashcodes'], database[2]['hashcodes'])
+    matching.display_scatterplot()
+    matching.display_histogram()
+    print(matching.match)
+
+if __name__ == '__main__':
+    song = np.random.randint(1,1001)
+    print('Selected song: ' + str(song))
+    filename = './samples/' + str(song) + '.wav'
+    
+    fs, s = read(filename)
+    tstart = np.random.randint(2,9)
+    tmin = int(tstart*fs)
+    duration = int(50*fs)
+    
+    encoder.process(fs, s[tmin:tmin + duration])
+    hashes1 = encoder.hashes
+
+    encoder.process(fs, s)
+    hashes2 = encoder.hashes
+    
+    matching = Matching(hashes1, hashes2)
+    matching.display_scatterplot()
+    matching.display_histogram()
+    print(matching.match)
+
+if __name__ == '__main__':
+    nperseg=128
+    noverlap=32
+    min_distance=25
+    time_window=1.
+    freq_window=1500
+    encoder = Encoding(nperseg=nperseg, noverlap=noverlap, min_distance=min_distance,time_window=time_window, freq_window=freq_window)
+
+    filename = "secret_sample.wav"
+
+    fs, s = read(filename)
+    
+    encoder.process(fs, s)
+    hashes = encoder.hashes
+    
+    matchs = []
+    for data in database:
+        matching = Matching(data['hashcodes'], hashes, 4)
+        if matching.match:
+            print("Match avec le morceau : ", data['song'])
+            matchs.append(data['song'])
+            matching.display_scatterplot()
+            matching.display_histogram()
+    print("Correspondances pour :", matchs)
