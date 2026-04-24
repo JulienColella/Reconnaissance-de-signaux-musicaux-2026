@@ -154,7 +154,7 @@ class Encoding:
 # -
 
 if __name__ == '__main__':
-    fs, s = read('samples/2.wav')
+    fs, s = read('../samples/samples/2.wav')
     encoder = Encoding()
     encoder.process(fs, s)
     #print(encoder.anchors)

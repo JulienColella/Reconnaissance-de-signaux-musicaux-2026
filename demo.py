@@ -28,10 +28,10 @@ if __name__ == '__main__':
       
    
     # 3: Randomly get an extract from one of the songs of the database
-    songs = [item for item in os.listdir('./samples') if item[:-4] == '.wav']
+    songs = [item for item in os.listdir('./samples') if item[-4:] == '.wav']
     song = random.choice(songs)
     print('Selected song: ' + song[:-4])
-    filename = './samples/' + song
+    filename = './samples/samples' + song
 
     fs, s = read(filename)
     tstart = np.random.randint(20, 90)
