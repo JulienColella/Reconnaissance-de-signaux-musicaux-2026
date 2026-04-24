@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy.io.wavfile import read
-from song_recognition.main import *
+from algorithm.py import *
 
 
 # ----------------------------------------------
