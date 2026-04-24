@@ -47,29 +47,29 @@ if __name__ == '__main__':
 
 # 5: Compare fingerprint to database
 
-best_score = 0
-best_song = None
-best_matcher = None
+    best_score = 0
+    best_song = None
+    best_matcher = None
 
-for item in database:
-    matcher = Matching(item['hashcodes'], hashes, critere=4)
+    for item in database:
+        matcher = Matching(item['hashcodes'], hashes, critere=4)
 
-    score = matcher.score if hasattr(matcher, "score") else 0
+        score = matcher.score if hasattr(matcher, "score") else 0
 
-    print(item['song'], score)
+        print(item['song'], score)
 
-    if score > best_score:
-        best_score = score
-        best_song = item['song']
-        best_matcher = matcher
+        if score > best_score:
+            best_score = score
+            best_song = item['song']
+            best_matcher = matcher
 
-print("\nRESULTAT FINAL:")
-print("Morceau reconnu :", best_song)
-print("Score :", best_score)
+    print("\nRESULTAT FINAL:")
+    print("Morceau reconnu :", best_song)
+    print("Score :", best_score)
 
-if best_matcher is not None:
-    best_matcher.display_scatterplot()
-    best_matcher.display_histogram()
+    if best_matcher is not None:
+        best_matcher.display_scatterplot()
+        best_matcher.display_histogram()
 
 
 
