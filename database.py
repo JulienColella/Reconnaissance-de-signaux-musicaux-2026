@@ -19,7 +19,7 @@ from algorithm import *
 # ----------------------------------------------
 if __name__ == '__main__':
 
-    folder = '../samples/samples/'
+    folder = 'samples/samples/'
 
     # 1: Load the audio files
     import os
