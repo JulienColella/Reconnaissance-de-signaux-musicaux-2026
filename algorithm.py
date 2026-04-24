@@ -247,17 +247,24 @@ class Matching:
         #    match
 
         self.match = False
-        self.offsets = []
-        self.hist = []
-        self.bin_egdes = []
-        if self.matching.ndim > 1 and len(self.matching) > 1:
-            self.offsets = self.matching[:,0] - self.matching[:,1]
+        self.offsets = np.array([])
+        self.hist = np.array([])
+        self.bin_edges = np.array([])
+        self.score = 0
 
-            self.hist, self.bin_edges = np.histogram(self.offsets, bins=100)
-        
-            self.hist.sort()
-            if self.hist[-1] > (critere * self.hist[-2]):
-                self.match = True
+        if self.matching.ndim > 1 and len(self.matching) > 1:
+
+
+         self.offsets = self.matching[:, 0] - self.matching[:, 1]
+
+         self.hist, self.bin_edges = np.histogram(self.offsets, bins=100)
+         self.score = np.max(self.hist)
+
+         sorted_hist = np.sort(self.hist)
+
+         if len(sorted_hist) >= 2:
+             if sorted_hist[-1] > critere * sorted_hist[-2]:
+                 self.match = True
        
              
     def display_scatterplot(self):
